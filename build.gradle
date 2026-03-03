@@ -18,10 +18,6 @@ dependencies {
     //utils
     implementation 'net.bytebuddy:byte-buddy:1.14.11'
 
-    //annotations
-    compileOnly 'org.projectlombok:lombok:1.18.34'
-    annotationProcessor 'org.projectlombok:lombok:1.18.34'
-
     //test
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'

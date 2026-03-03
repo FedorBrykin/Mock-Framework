@@ -1,6 +1,9 @@
 package ru.nsu.core;
 
 import org.junit.jupiter.api.Test;
+import ru.nsu.core.answer.Answer;
+import ru.nsu.core.invocation.Invocation;
+import ru.nsu.core.progress.MockingProgress;
 
 import java.lang.reflect.Method;
 import java.util.Optional;

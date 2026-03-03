@@ -1,6 +1,7 @@
 package ru.nsu.core;
 
 import org.junit.jupiter.api.Test;
+import ru.nsu.core.answer.Answer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
