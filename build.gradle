@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group = 'ru.nsu'
@@ -10,9 +11,80 @@ repositories {
 }
 
 dependencies {
+    //logger
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'ch.qos.logback:logback-classic:1.4.11'
+
+    //utils
+    implementation 'net.bytebuddy:byte-buddy:1.14.11'
+
+    //annotations
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    //test
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
+
+application {
+    mainClass = 'ru.nsu.Application'
+}
+
+// Создание JAR с манифестом для агента
+tasks.register('jokeMockJar', Jar) {
+    archiveBaseName = 'joke-mock'
+    archiveVersion = '1.0'
+
+    from sourceSets.main.output
+
+    manifest {
+        attributes(
+                'Premain-Class': 'ru.nsu.observer.Observer',
+                'Can-Redefine-Classes': 'true',
+                'Can-Retransform-Classes': 'true'
+        )
+    }
+
+    // Включаем только классы наблюдателя, мэтчера и аннотации
+    include 'ru/nsu/observer/**/*.class'
+    include 'ru/nsu/core/**/*.class'
+    include 'ru/nsu/annotation/**/*.class'
+}
+
+// Основной JAR приложения
+tasks.register('appJar', Jar) {
+    archiveBaseName = 'application'
+    archiveVersion = '1.0'
+
+    from sourceSets.main.output
+
+    manifest {
+        attributes(
+                'Main-Class': 'ru.nsu.Application'
+        )
+    }
+
+    // Исключаем классы агента из основного JAR
+    exclude 'ru/nsu/observer/**'
+    exclude 'ru/nsu/core/**'
+}
+
+// Задача для запуска приложения с агентом
+tasks.register('jokeMockRun', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ru.nsu.Application'
+    jvmArgs = ["-javaagent:${jokeMockJar.archiveFile.get().asFile.path}"]
+
+    dependsOn jokeMockJar
+}
+
+// Сборка всех JAR-файлов
+tasks.register('buildAll') {
+    dependsOn jokeMockJar, appJar
+}
+
+build.dependsOn buildAll
 
 test {
     useJUnitPlatform()
