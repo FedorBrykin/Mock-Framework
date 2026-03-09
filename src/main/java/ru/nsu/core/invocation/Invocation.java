@@ -1,4 +1,4 @@
-package ru.nsu.core;
+package ru.nsu.core.invocation;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
