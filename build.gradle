@@ -10,18 +10,28 @@ repositories {
 }
 
 dependencies {
-    // ByteBuddy для создания классов
+    // ==================== КОМПИЛЯЦИЯ (API) ====================
+    // ByteBuddy для динамического создания классов
     api 'net.bytebuddy:byte-buddy:1.14.11'
 
-    // Логирование (опционально)
+    // ==================== РЕАЛИЗАЦИЯ (Implementation) ====================
+    // Логирование
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'ch.qos.logback:logback-classic:1.4.11'
 
-    // Для JUnit 5 расширения (опционально)
+    // ==================== JUnit 5 Интеграция ====================
+    // API для создания расширений (compileOnly чтобы не тянуть зависимость)
     compileOnly 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    compileOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    compileOnly 'org.junit.platform:junit-platform-commons:1.10.0'
 
-    // Тестирование
+    // Аннотации @API Guardian (для стабильности API)
+    compileOnly 'org.apiguardian:apiguardian-api:1.1.2'
+
+    // ==================== ТЕСТИРОВАНИЕ ====================
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'org.mockito:mockito-core:5.6.0'  // для сравнения
 }
 
 // Просто собираем обычную библиотеку

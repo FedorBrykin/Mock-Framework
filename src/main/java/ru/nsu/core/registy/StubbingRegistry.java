@@ -25,6 +25,10 @@ public class StubbingRegistry {
         return INSTANCE.get();
     }
 
+    public void reset() {
+        stubbings.clear();
+    }
+
     public Answer findAnswer(Invocation invocation) throws MockException {
         for (int i = stubbings.size() - 1; i >= 0; i--) {
             Stubbing stubbing = stubbings.get(i);
