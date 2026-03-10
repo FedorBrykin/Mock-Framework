@@ -1,17 +1,16 @@
 package ru.nsu.core.progress;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.nsu.core.answer.Answer;
 import ru.nsu.core.invocation.Invocation;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Хранилище сопоставлений Invocation -> Answer
- * <p>
  * (в разработке)
  */
 public class MockingProgress {
@@ -22,12 +21,36 @@ public class MockingProgress {
 
     private final Map<Invocation, Answer> stubbings = new ConcurrentHashMap<>();
     private final ThreadLocal<Invocation> lastRecordedInvocation = new ThreadLocal<>();
+    private final ThreadLocal<Boolean> recording =
+            ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     private MockingProgress() {
     }
 
     public static MockingProgress getInstance() {
         return INSTANCE.get();
+    }
+
+    /**
+     * Работа со стабингом
+     */
+    public void startStubbing() {
+        if (log.isDebugEnabled()) {
+            log.debug("Start stubbing mode");
+        }
+        recording.set(Boolean.TRUE);
+        lastRecordedInvocation.remove();
+    }
+
+    public void stopStubbing() {
+        if (log.isDebugEnabled()) {
+            log.debug("Stop stubbing mode");
+        }
+        recording.set(Boolean.FALSE);
+    }
+
+    public boolean isRecording() {
+        return Boolean.TRUE.equals(recording.get());
     }
 
     /**

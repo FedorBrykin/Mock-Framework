@@ -1,4 +1,3 @@
-// ru.nsu.core.handler.InvocationHandler.java
 package ru.nsu.core.handler;
 
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
@@ -10,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.nsu.core.answer.Answer;
 import ru.nsu.core.invocation.Invocation;
+import ru.nsu.core.progress.MockingProgress;
 import ru.nsu.core.registy.StubbingRegistry;
 
 import java.lang.reflect.Method;
@@ -40,7 +40,19 @@ public class InvocationHandler {
                     System.identityHashCode(mock));
         }
 
-        Answer answer = registry.findAnswer(new Invocation(mock, method, args));
+        MockingProgress progress = MockingProgress.getInstance();
+        Invocation invocation = new Invocation(mock, method, args);
+
+        if (progress.isRecording()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Recording invocation for stubbing {}.{}",
+                        mock.getClass().getSimpleName(), method.getName());
+            }
+            progress.recordInvocation(invocation);
+            return getDefaultReturnValue(method.getReturnType());
+        }
+
+        Answer answer = registry.findAnswer(invocation);
         if (log.isDebugEnabled()) {
             log.debug("Found stubbing for {}.{}, executing",
                     mock.getClass().getSimpleName(), method.getName());
@@ -50,5 +62,36 @@ public class InvocationHandler {
 
     private static boolean isObjectMethod(Method method) {
         return method.getDeclaringClass() == Object.class;
+    }
+
+    private static Object getDefaultReturnValue(Class<?> returnType) {
+        if (!returnType.isPrimitive()) {
+            return null;
+        }
+        if (returnType == boolean.class) {
+            return false;
+        }
+        if (returnType == char.class) {
+            return '\0';
+        }
+        if (returnType == byte.class) {
+            return (byte) 0;
+        }
+        if (returnType == short.class) {
+            return (short) 0;
+        }
+        if (returnType == int.class) {
+            return 0;
+        }
+        if (returnType == long.class) {
+            return 0L;
+        }
+        if (returnType == float.class) {
+            return 0f;
+        }
+        if (returnType == double.class) {
+            return 0d;
+        }
+        return null;
     }
 }
