@@ -11,6 +11,7 @@ import ru.nsu.core.answer.Answer;
 import ru.nsu.core.invocation.Invocation;
 import ru.nsu.core.progress.MockingProgress;
 import ru.nsu.core.registy.StubbingRegistry;
+import ru.nsu.core.exception.MockException;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
@@ -49,7 +50,7 @@ public class InvocationHandler {
                         mock.getClass().getSimpleName(), method.getName());
             }
             progress.recordInvocation(invocation);
-            return getDefaultReturnValue(method.getReturnType());
+            throw new MockException("Invocation recorded for stubbing, return value should be provided via thenReturn/thenThrow");
         }
 
         Answer answer = registry.findAnswer(invocation);
@@ -62,36 +63,5 @@ public class InvocationHandler {
 
     private static boolean isObjectMethod(Method method) {
         return method.getDeclaringClass() == Object.class;
-    }
-
-    private static Object getDefaultReturnValue(Class<?> returnType) {
-        if (!returnType.isPrimitive()) {
-            return null;
-        }
-        if (returnType == boolean.class) {
-            return false;
-        }
-        if (returnType == char.class) {
-            return '\0';
-        }
-        if (returnType == byte.class) {
-            return (byte) 0;
-        }
-        if (returnType == short.class) {
-            return (short) 0;
-        }
-        if (returnType == int.class) {
-            return 0;
-        }
-        if (returnType == long.class) {
-            return 0L;
-        }
-        if (returnType == float.class) {
-            return 0f;
-        }
-        if (returnType == double.class) {
-            return 0d;
-        }
-        return null;
     }
 }
