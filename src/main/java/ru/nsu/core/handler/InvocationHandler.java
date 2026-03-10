@@ -1,4 +1,3 @@
-// ru.nsu.core.handler.InvocationHandler.java
 package ru.nsu.core.handler;
 
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
@@ -10,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.nsu.core.answer.Answer;
 import ru.nsu.core.invocation.Invocation;
+import ru.nsu.core.progress.MockingProgress;
 import ru.nsu.core.registy.StubbingRegistry;
+import ru.nsu.core.exception.MockException;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
@@ -40,7 +41,19 @@ public class InvocationHandler {
                     System.identityHashCode(mock));
         }
 
-        Answer answer = registry.findAnswer(new Invocation(mock, method, args));
+        MockingProgress progress = MockingProgress.getInstance();
+        Invocation invocation = new Invocation(mock, method, args);
+
+        if (progress.isRecording()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Recording invocation for stubbing {}.{}",
+                        mock.getClass().getSimpleName(), method.getName());
+            }
+            progress.recordInvocation(invocation);
+            throw new MockException("Invocation recorded for stubbing, return value should be provided via thenReturn/thenThrow");
+        }
+
+        Answer answer = registry.findAnswer(invocation);
         if (log.isDebugEnabled()) {
             log.debug("Found stubbing for {}.{}, executing",
                     mock.getClass().getSimpleName(), method.getName());

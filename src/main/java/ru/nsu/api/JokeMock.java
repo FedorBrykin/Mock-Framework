@@ -3,12 +3,14 @@ package ru.nsu.api;
 import ru.nsu.core.factory.MockFactory;
 import ru.nsu.core.registy.StubbingRegistry;
 import ru.nsu.annotation.Mock;
+import ru.nsu.core.progress.MockingProgress;
 
 import java.lang.reflect.Field;
 
 public class JokeMock {
 
     private static final StubbingRegistry registry = StubbingRegistry.getInstance();
+    private static final MockingProgress progress = MockingProgress.getInstance();
 
     public static <T> T mock(Class<T> classToMock) {
         return MockFactory.createMock(classToMock);
@@ -16,6 +18,18 @@ public class JokeMock {
 
     public static void resetMocks() {
         registry.reset();
+    }
+
+    public static <T> OngoingStubbing<T> when(ThrowingSupplier<T> invocation) {
+        progress.startStubbing();
+        try {
+            invocation.get();
+        } catch (Throwable ignored) {
+            // во время записи результат и исключения не интересуют, если я правильно понял
+        } finally {
+            progress.stopStubbing();
+        }
+        return new OngoingStubbing<>();
     }
 
     public static void initMocks(Object testInstance) {
