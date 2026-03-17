@@ -4,7 +4,7 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
-import ru.nsu.core.handler.InvocationHandler;
+import ru.nsu.core.handler.MockHandler;
 
 public class MockFactory {
 
@@ -25,11 +25,10 @@ public class MockFactory {
 
     @SuppressWarnings("unchecked")
     private static <T> T createInterfaceMock(Class<T> interfaceToMock) {
-        // Здесь мы напрямую вызываем статический метод InvocationHandler
         return (T) java.lang.reflect.Proxy.newProxyInstance(
                 interfaceToMock.getClassLoader(),
-                new Class<?>[] { interfaceToMock },
-                InvocationHandler::handle
+                new Class<?>[]{interfaceToMock},
+                new MockHandler()
         );
     }
 
@@ -37,8 +36,7 @@ public class MockFactory {
     private static <T> T createClassMock(Class<T> classToMock) throws Exception {
         return (T) byteBuddy.subclass(classToMock)
                 .method(ElementMatchers.any())
-                // Делегируем ВСЕ методы в наш InvocationHandler
-                .intercept(MethodDelegation.to(InvocationHandler.class))
+                .intercept(MethodDelegation.to(MockHandler.class))
                 .make()
                 .load(classToMock.getClassLoader(), ClassLoadingStrategy.Default.INJECTION)
                 .getLoaded()

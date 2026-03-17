@@ -11,30 +11,37 @@ import ru.nsu.core.answer.Answer;
 import ru.nsu.core.invocation.Invocation;
 import ru.nsu.core.progress.MockingProgress;
 import ru.nsu.core.registy.StubbingRegistry;
-import ru.nsu.core.exception.MockException;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 
-public class InvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(InvocationHandler.class);
+public class MockHandler implements InvocationHandler {
+    private static final Logger log = LoggerFactory.getLogger(MockHandler.class);
     private static final StubbingRegistry registry = StubbingRegistry.getInstance();
 
+    // Для ByteBuddy (классы)
     @RuntimeType
     public static Object intercept(@Origin Method method,
                                    @This Object mock,
                                    @AllArguments Object[] args,
                                    @SuperCall Callable<?> superCall) throws Throwable {
         if (isObjectMethod(method)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Intercepted call to Object method");
-            }
             return superCall.call();
         }
         return handle(mock, method, args);
     }
 
-    public static Object handle(Object mock, Method method, Object[] args) throws Throwable {
+    // Для Proxy (интерфейсы)
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (isObjectMethod(method)) {
+            return method.invoke(this, args);
+        }
+        return handle(proxy, method, args);
+    }
+
+    private static Object handle(Object mock, Method method, Object[] args) throws Throwable {
         if (log.isDebugEnabled()) {
             log.debug("Intercepted call to {}.{} on mock {}",
                     mock.getClass().getSimpleName(), method.getName(),
@@ -44,21 +51,25 @@ public class InvocationHandler {
         MockingProgress progress = MockingProgress.getInstance();
         Invocation invocation = new Invocation(mock, method, args);
 
-        if (progress.isRecording()) {
+        // Всегда записываем последний вызов (для when)
+        progress.recordInvocation(invocation);
+
+        // Ищем стаббинг
+        Answer answer = registry.findAnswer(invocation);
+        if (answer != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Recording invocation for stubbing {}.{}",
+                log.debug("Found stubbing for {}.{}, executing",
                         mock.getClass().getSimpleName(), method.getName());
             }
-            progress.recordInvocation(invocation);
-            throw new MockException("Invocation recorded for stubbing, return value should be provided via thenReturn/thenThrow");
+            return answer.execute();
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("No stubbing found for {}.{}, returning default value",
+                        mock.getClass().getSimpleName(), method.getName());
+            }
+            // Возвращаем значение по умолчанию
+            return null;
         }
-
-        Answer answer = registry.findAnswer(invocation);
-        if (log.isDebugEnabled()) {
-            log.debug("Found stubbing for {}.{}, executing",
-                    mock.getClass().getSimpleName(), method.getName());
-        }
-        return answer.execute();
     }
 
     private static boolean isObjectMethod(Method method) {

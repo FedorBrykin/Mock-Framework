@@ -12,7 +12,7 @@ public class JokeMockExtension implements TestInstancePostProcessor,
 
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext context) {
-        JokeMock.initMocks(testInstance);
+        JokeMock.init(testInstance);
     }
 
     @Override
@@ -20,6 +20,6 @@ public class JokeMockExtension implements TestInstancePostProcessor,
 
     @Override
     public void afterEach(ExtensionContext context) {
-        JokeMock.resetMocks();
+        JokeMock.reset();
     }
 }

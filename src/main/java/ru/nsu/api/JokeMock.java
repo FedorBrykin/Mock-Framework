@@ -1,8 +1,11 @@
 package ru.nsu.api;
 
 import ru.nsu.core.factory.MockFactory;
+import ru.nsu.core.factory.SpyFactory;
+import ru.nsu.core.handler.SpyHandler;
 import ru.nsu.core.registy.StubbingRegistry;
 import ru.nsu.annotation.Mock;
+import ru.nsu.annotation.Spy;
 import ru.nsu.core.progress.MockingProgress;
 
 import java.lang.reflect.Field;
@@ -16,23 +19,20 @@ public class JokeMock {
         return MockFactory.createMock(classToMock);
     }
 
-    public static void resetMocks() {
+    public static void reset() {
         registry.reset();
+        SpyHandler.clearPendingAnswer();
     }
 
-    public static <T> OngoingStubbing<T> when(ThrowingSupplier<T> invocation) {
-        progress.startStubbing();
-        try {
-            invocation.get();
-        } catch (Throwable ignored) {
-            // во время записи результат и исключения не интересуют, если я правильно понял
-        } finally {
-            progress.stopStubbing();
-        }
+    public static <T> OngoingStubbing<T> when(T invocation) {
         return new OngoingStubbing<>();
     }
 
-    public static void initMocks(Object testInstance) {
+    public static <T> T spy(T object) {
+        return SpyFactory.createSpy(object);
+    }
+
+    public static void init(Object testInstance) {
         Class<?> clazz = testInstance.getClass();
 
         while (clazz != null) {
@@ -41,6 +41,13 @@ public class JokeMock {
                     createMockForField(testInstance, field);
                 }
             }
+
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isAnnotationPresent(Spy.class)) {
+                    createSpyForField(testInstance, field);
+                }
+            }
+
             clazz = clazz.getSuperclass();
         }
     }
@@ -55,6 +62,27 @@ public class JokeMock {
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to create mock for field: " + field.getName(), e);
+        }
+    }
+
+    private static void createSpyForField(Object testInstance, Field field) {
+        try {
+            field.setAccessible(true);
+
+            Object realObject = field.get(testInstance);
+
+            if (realObject == null) {
+                throw new IllegalStateException(
+                        "Field " + field.getName() + " annotated with @Spy is null. " +
+                                "Please initialize it before calling initMocks()."
+                );
+            }
+
+            Object spy = SpyFactory.createSpy(realObject);
+            field.set(testInstance, spy);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create spy for field: " + field.getName(), e);
         }
     }
 }
