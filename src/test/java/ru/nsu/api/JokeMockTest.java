@@ -21,7 +21,7 @@ class JokeMockTest {
     void whenThenReturnShouldReturnStubbedValueForInterfaceMock() {
         GreetingService mock = JokeMock.mock(GreetingService.class);
 
-        JokeMock.when(() -> mock.greet("John"))
+        JokeMock.when(mock.greet("John"))
                 .thenReturn("Hi John");
 
         String result = mock.greet("John");
@@ -31,7 +31,7 @@ class JokeMockTest {
 
     @Test
     void extensionShouldInitializeMockAnnotatedField() {
-        JokeMock.when(() -> greetingService.greet("Kate"))
+        JokeMock.when(greetingService.greet("Kate"))
                 .thenReturn("Hello Kate");
 
         String result = greetingService.greet("Kate");

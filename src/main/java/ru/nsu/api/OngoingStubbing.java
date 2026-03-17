@@ -3,7 +3,6 @@ package ru.nsu.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.nsu.core.answer.Answer;
-import ru.nsu.core.exception.MockException;
 import ru.nsu.core.invocation.Invocation;
 import ru.nsu.core.progress.MockingProgress;
 import ru.nsu.core.registy.StubbingRegistry;
@@ -29,7 +28,8 @@ public class OngoingStubbing<T> {
     private void addAnswer(Answer answer) {
         Optional<Invocation> recorded = progress.consumeLastRecordedInvocation();
         if (recorded.isEmpty()) {
-            throw new IllegalStateException("There is no recorded call for setting up stabbing");
+            throw new IllegalStateException("There is no recorded call for setting up stubbing. " +
+                    "Make sure you call the mock method inside when().");
         }
         Invocation invocation = recorded.get();
 
@@ -42,4 +42,3 @@ public class OngoingStubbing<T> {
         }
     }
 }
-

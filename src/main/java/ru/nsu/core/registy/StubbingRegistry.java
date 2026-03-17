@@ -29,21 +29,20 @@ public class StubbingRegistry {
         stubbings.clear();
     }
 
-    public Answer findAnswer(Invocation invocation) throws MockException {
+    public Answer findAnswer(Invocation invocation) {
         for (int i = stubbings.size() - 1; i >= 0; i--) {
             Stubbing stubbing = stubbings.get(i);
             if (stubbing.matches(invocation)) {
                 Optional<Answer> answer = stubbing.getAnswer();
-                if (answer.isEmpty()) {
-                    throw new MockException("Нету мока для данного вызова");
+                if (answer.isPresent()) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Found answer for method: {}", invocation.getMethod());
+                    }
+                    return answer.get();
                 }
-                if (log.isDebugEnabled()) {
-                    log.debug("Find answer for method: {}", invocation.getMethod());
-                }
-                return answer.get();
             }
         }
-        throw new MockException("Нету мока для данного вызова");
+        return null;
     }
 
     public void addStubbing(Stubbing stubbing) {
