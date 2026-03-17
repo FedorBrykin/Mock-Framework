@@ -18,11 +18,31 @@ public class MockingProgress {
             ThreadLocal.withInitial(MockingProgress::new);
 
     private final ThreadLocal<Invocation> lastRecordedInvocation = new ThreadLocal<>();
+    private final ThreadLocal<Boolean> recording = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     private MockingProgress() {}
 
     public static MockingProgress getInstance() {
         return INSTANCE.get();
+    }
+
+    public void startRecording() {
+        if (log.isDebugEnabled()) {
+            log.debug("Start recording mode");
+        }
+        recording.set(Boolean.TRUE);
+        lastRecordedInvocation.remove();
+    }
+
+    public void stopRecording() {
+        if (log.isDebugEnabled()) {
+            log.debug("Stop recording mode");
+        }
+        recording.set(Boolean.FALSE);
+    }
+
+    public boolean isRecording() {
+        return Boolean.TRUE.equals(recording.get());
     }
 
     public void recordInvocation(Invocation invocation) {
