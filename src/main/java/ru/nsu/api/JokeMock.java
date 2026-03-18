@@ -7,6 +7,7 @@ import ru.nsu.core.registy.StubbingRegistry;
 import ru.nsu.annotation.Mock;
 import ru.nsu.annotation.Spy;
 import ru.nsu.core.progress.MockingProgress;
+import ru.nsu.core.answer.Answer;
 
 import java.lang.reflect.Field;
 
@@ -19,17 +20,28 @@ public class JokeMock {
         return MockFactory.createMock(classToMock);
     }
 
+    public static <T> T spy(T object) {
+        return SpyFactory.createSpy(object);
+    }
+
+    public static Stubber doReturn(Object value) {
+        return new Stubber(Answer.returns(value));
+    }
+
+    public static Stubber doThrow(Throwable throwable) {
+        return new Stubber(Answer.throwsException(throwable));
+    }
+
     public static void reset() {
         registry.reset();
         SpyHandler.clearPendingAnswer();
+        progress.stopRecording();
+        progress.consumePendingAnswer();
+        progress.consumeLastRecordedInvocation();
     }
 
     public static <T> OngoingStubbing<T> when(T invocation) {
         return new OngoingStubbing<>();
-    }
-
-    public static <T> T spy(T object) {
-        return SpyFactory.createSpy(object);
     }
 
     public static void init(Object testInstance) {

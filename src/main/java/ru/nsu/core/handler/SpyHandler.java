@@ -22,17 +22,17 @@ public class SpyHandler implements InvocationHandler {
     private static final StubbingRegistry registry = StubbingRegistry.getInstance();
 
     private final Object target;
-    private static final ThreadLocal<Object> pendingAnswer = new ThreadLocal<>();
+    private static final ThreadLocal<Answer> pendingAnswer = new ThreadLocal<>();
 
     public SpyHandler(Object target) {
         this.target = target;
     }
 
-    public static void setPendingAnswer(Object value) {
-        pendingAnswer.set(value);
+    public static void setPendingAnswer(Answer answer) {
+        pendingAnswer.set(answer);
     }
 
-    public static Object getPendingAnswer() {
+    public static Answer getPendingAnswer() {
         return pendingAnswer.get();
     }
 
@@ -73,20 +73,18 @@ public class SpyHandler implements InvocationHandler {
         // Всегда записываем вызов (для when/doReturn)
         progress.recordInvocation(invocation);
 
-        // Проверяем, есть ли ожидающее значение от doReturn
-        Object pendingValue = pendingAnswer.get();
-        if (pendingValue != null) {
+        // Проверяем, есть ли ожидающий Answer от doReturn/doThrow
+        Answer pending = pendingAnswer.get();
+        if (pending != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Pending doReturn value found for {}.{}",
+                log.debug("Pending stub answer found for {}.{}",
                         target.getClass().getSimpleName(), method.getName());
             }
-            // Создаём стаббинг с этим значением
-            Answer answer = Answer.returns(pendingValue);
             Stubbing stubbing = new Stubbing(invocation);
-            stubbing.thenAnswer(answer);
+            stubbing.thenAnswer(pending);
             registry.addStubbing(stubbing);
             clearPendingAnswer();
-            return pendingValue;
+            return defaultValue(method.getReturnType());
         }
 
         // Ищем существующий стаббинг
@@ -109,5 +107,19 @@ public class SpyHandler implements InvocationHandler {
 
     private boolean isObjectMethod(Method method) {
         return method.getDeclaringClass() == Object.class;
+    }
+
+    private static Object defaultValue(Class<?> returnType) {
+        if (returnType == void.class) return null;
+        if (!returnType.isPrimitive()) return null;
+        if (returnType == boolean.class) return false;
+        if (returnType == char.class) return '\0';
+        if (returnType == byte.class) return (byte) 0;
+        if (returnType == short.class) return (short) 0;
+        if (returnType == int.class) return 0;
+        if (returnType == long.class) return 0L;
+        if (returnType == float.class) return 0f;
+        if (returnType == double.class) return 0d;
+        return null;
     }
 }
