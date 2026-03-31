@@ -38,7 +38,7 @@ public class SpyFactory {
                     .method(ElementMatchers.any())
                     .intercept(MethodDelegation.to(handler))
                     .make()
-                    .load(classToSpy.getClassLoader(), ClassLoadingStrategy.Default.INJECTION)
+                    .load(classToSpy.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
                     .getLoaded();
 
             return spyClass.getDeclaredConstructor().newInstance();
