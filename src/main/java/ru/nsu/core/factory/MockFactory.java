@@ -38,7 +38,7 @@ public class MockFactory {
                 .method(ElementMatchers.any())
                 .intercept(MethodDelegation.to(MockHandler.class))
                 .make()
-                .load(classToMock.getClassLoader(), ClassLoadingStrategy.Default.INJECTION)
+                .load(classToMock.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
                 .getLoaded()
                 .getDeclaredConstructor()
                 .newInstance();
