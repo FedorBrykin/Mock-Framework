@@ -1,6 +1,6 @@
 package ru.nsu.core.exception;
 
-public class MockException extends Exception {
+public class MockException extends RuntimeException {
 
     public MockException(String message) {
         super(message);

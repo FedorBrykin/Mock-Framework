@@ -20,9 +20,10 @@ import java.util.concurrent.Callable;
 public class SpyHandler implements InvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(SpyHandler.class);
     private static final StubbingRegistry registry = StubbingRegistry.getInstance();
+    private static final ThreadLocal<Answer> pendingAnswer = new ThreadLocal<>();
+    private static final ThreadLocal<Invocation> pendingInvocation = new ThreadLocal<>();
 
     private final Object target;
-    private static final ThreadLocal<Answer> pendingAnswer = new ThreadLocal<>();
 
     public SpyHandler(Object target) {
         this.target = target;
@@ -32,12 +33,17 @@ public class SpyHandler implements InvocationHandler {
         pendingAnswer.set(answer);
     }
 
+    public static void setPendingInvocation(Invocation invocation) {
+        pendingInvocation.set(invocation);
+    }
+
     public static Answer getPendingAnswer() {
         return pendingAnswer.get();
     }
 
     public static void clearPendingAnswer() {
         pendingAnswer.remove();
+        pendingInvocation.remove();
     }
 
     // Для ByteBuddy - экземплярный метод
@@ -70,22 +76,27 @@ public class SpyHandler implements InvocationHandler {
         MockingProgress progress = MockingProgress.getInstance();
         Invocation invocation = new Invocation(mock, method, args);
 
-        // Всегда записываем вызов (для when/doReturn)
-        progress.recordInvocation(invocation);
-
         // Проверяем, есть ли ожидающий Answer от doReturn/doThrow
         Answer pending = pendingAnswer.get();
         if (pending != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Pending stub answer found for {}.{}",
+                log.debug("Setting up pending stub for {}.{}",
                         target.getClass().getSimpleName(), method.getName());
             }
+
+            // Создаем стаббинг для будущих вызовов
             Stubbing stubbing = new Stubbing(invocation);
             stubbing.thenAnswer(pending);
             registry.addStubbing(stubbing);
             clearPendingAnswer();
-            return defaultValue(method.getReturnType());
+
+            // Возвращаем значение по умолчанию для этого вызова (не выполняем answer)
+            // так как это вызов для настройки, а не реальный вызов
+            return getDefaultValue(method.getReturnType());
         }
+
+        // Всегда записываем вызов (для when)
+        progress.recordInvocation(invocation);
 
         // Ищем существующий стаббинг
         Answer answer = registry.findAnswer(invocation);
@@ -109,7 +120,7 @@ public class SpyHandler implements InvocationHandler {
         return method.getDeclaringClass() == Object.class;
     }
 
-    private static Object defaultValue(Class<?> returnType) {
+    private static Object getDefaultValue(Class<?> returnType) {
         if (returnType == void.class) return null;
         if (!returnType.isPrimitive()) return null;
         if (returnType == boolean.class) return false;

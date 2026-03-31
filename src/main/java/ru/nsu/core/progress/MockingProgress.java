@@ -1,82 +1,61 @@
 package ru.nsu.core.progress;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.nsu.core.answer.Answer;
 import ru.nsu.core.invocation.Invocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
-/**
- * Хранилище сопоставлений Invocation -> Answer
- * (в разработке)
- */
 public class MockingProgress {
     private static final Logger log = LoggerFactory.getLogger(MockingProgress.class);
-
-    private static final ThreadLocal<MockingProgress> INSTANCE =
-            ThreadLocal.withInitial(MockingProgress::new);
-
-    private final ThreadLocal<Invocation> lastRecordedInvocation = new ThreadLocal<>();
-    private final ThreadLocal<Boolean> recording = ThreadLocal.withInitial(() -> Boolean.FALSE);
+    private static final MockingProgress instance = new MockingProgress();
+    private final ConcurrentLinkedDeque<Invocation> recordedInvocations = new ConcurrentLinkedDeque<>();
     private final ThreadLocal<Answer> pendingAnswer = new ThreadLocal<>();
 
     private MockingProgress() {}
 
     public static MockingProgress getInstance() {
-        return INSTANCE.get();
-    }
-
-    public void startRecording() {
-        if (log.isDebugEnabled()) {
-            log.debug("Start recording mode");
-        }
-        recording.set(Boolean.TRUE);
-        lastRecordedInvocation.remove();
-        pendingAnswer.remove();
-    }
-
-    public void stopRecording() {
-        if (log.isDebugEnabled()) {
-            log.debug("Stop recording mode");
-        }
-        recording.set(Boolean.FALSE);
-    }
-
-    public boolean isRecording() {
-        return Boolean.TRUE.equals(recording.get());
-    }
-
-    public void setPendingAnswer(Answer answer) {
-        if (log.isDebugEnabled()) {
-            log.debug("Set pending answer");
-        }
-        pendingAnswer.set(answer);
-    }
-
-    public Optional<Answer> consumePendingAnswer() {
-        Answer answer = pendingAnswer.get();
-        pendingAnswer.remove();
-        if (log.isDebugEnabled()) {
-            log.debug("Consume pending answer: {}", answer != null ? "present" : "null");
-        }
-        return Optional.ofNullable(answer);
+        return instance;
     }
 
     public void recordInvocation(Invocation invocation) {
+        recordedInvocations.addLast(invocation);
         if (log.isDebugEnabled()) {
-            log.debug("Recording invocation: {} args={}", invocation.getMethod(), Arrays.toString(invocation.getArgs()));
+            log.debug("Recorded invocation: {}", invocation);
         }
-        lastRecordedInvocation.set(invocation);
     }
 
     public Optional<Invocation> consumeLastRecordedInvocation() {
-        Invocation invocation = lastRecordedInvocation.get();
-        lastRecordedInvocation.remove();
-        if (log.isDebugEnabled()) {
-            log.debug("Consuming last recorded invocation: {}", invocation != null ? invocation.getMethod() : "null");
+        Invocation invocation = recordedInvocations.pollLast();
+        if (log.isDebugEnabled() && invocation != null) {
+            log.debug("Consumed invocation: {}", invocation);
         }
         return Optional.ofNullable(invocation);
+    }
+
+    public void setPendingAnswer(Answer answer) {
+        pendingAnswer.set(answer);
+        if (log.isDebugEnabled()) {
+            log.debug("Set pending answer: {}", answer);
+        }
+    }
+
+    public Answer consumePendingAnswer() {
+        Answer answer = pendingAnswer.get();
+        pendingAnswer.remove();
+        if (log.isDebugEnabled() && answer != null) {
+            log.debug("Consumed pending answer: {}", answer);
+        }
+        return answer;
+    }
+
+    public void clear() {
+        recordedInvocations.clear();
+        pendingAnswer.remove();
+        if (log.isDebugEnabled()) {
+            log.debug("Mocking progress cleared");
+        }
     }
 }

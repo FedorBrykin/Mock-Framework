@@ -8,6 +8,8 @@ import ru.nsu.annotation.Mock;
 import ru.nsu.annotation.Spy;
 import ru.nsu.core.progress.MockingProgress;
 import ru.nsu.core.answer.Answer;
+import ru.nsu.core.staticmock.StaticMockContext;
+import ru.nsu.core.staticmock.StaticMockRegistry;
 
 import java.lang.reflect.Field;
 
@@ -35,13 +37,18 @@ public class JokeMock {
     public static void reset() {
         registry.reset();
         SpyHandler.clearPendingAnswer();
-        progress.stopRecording();
-        progress.consumePendingAnswer();
-        progress.consumeLastRecordedInvocation();
+        StaticMockRegistry.clear();
+        progress.clear();
     }
 
     public static <T> OngoingStubbing<T> when(T invocation) {
         return new OngoingStubbing<>();
+    }
+
+    public static <T> MockedStatic<T> mockStatic(Class<T> classToMock) {
+        StaticMockContext context = StaticMockContext.forClass(classToMock);
+        context.setup();
+        return new MockedStatic<>(classToMock, context);
     }
 
     public static void init(Object testInstance) {
