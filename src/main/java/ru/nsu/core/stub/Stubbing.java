@@ -22,6 +22,10 @@ public class Stubbing {
         return answer;
     }
 
+    public Invocation getInvocation() {
+        return invocation;
+    }
+
     public boolean matches(Invocation invocation) {
         if (invocation == null) {
             return false;

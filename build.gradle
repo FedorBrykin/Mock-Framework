@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'com.gradleup.shadow' version '8.3.0'
 }
 
 group = 'ru.nsu'
@@ -13,6 +14,7 @@ dependencies {
     // ==================== КОМПИЛЯЦИЯ (API) ====================
     // ByteBuddy для динамического создания классов
     api 'net.bytebuddy:byte-buddy:1.14.11'
+    api 'net.bytebuddy:byte-buddy-agent:1.14.11'
 
     // ==================== РЕАЛИЗАЦИЯ (Implementation) ====================
     // Логирование
@@ -20,7 +22,6 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.4.11'
 
     // ==================== JUnit 5 Интеграция ====================
-    // API для создания расширений (compileOnly чтобы не тянуть зависимость)
     compileOnly 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     compileOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
     compileOnly 'org.junit.platform:junit-platform-commons:1.10.0'
@@ -31,13 +32,36 @@ dependencies {
     // ==================== ТЕСТИРОВАНИЕ ====================
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.assertj:assertj-core:3.24.2'
-    testImplementation 'org.mockito:mockito-core:5.6.0'  // для сравнения
 }
 
-// Просто собираем обычную библиотеку
+// Настраиваем задачу для создания agent jar
+task agentJar(type: Jar) {
+    archiveBaseName = 'joke-mock-agent'
+    archiveVersion = version
+    archiveClassifier = ''
+    manifest {
+        attributes(
+                'Premain-Class': 'ru.nsu.core.staticmock.StaticMockAgent',
+                'Agent-Class': 'ru.nsu.core.staticmock.StaticMockAgent',
+                'Can-Redefine-Classes': 'true',
+                'Can-Retransform-Classes': 'true',
+                'Implementation-Title': 'Joke Mock Agent',
+                'Implementation-Version': version
+        )
+    }
+    // Включаем все классы, необходимые для агента
+    from sourceSets.main.output
+    // Включаем зависимости ByteBuddy в agent jar
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Обычный jar для библиотеки
 jar {
     archiveBaseName = 'joke-mock'
-
+    archiveVersion = version
     manifest {
         attributes(
                 'Implementation-Title': 'Joke Mock Library',
@@ -46,6 +70,40 @@ jar {
     }
 }
 
+// Настраиваем тесты
 test {
     useJUnitPlatform()
+
+    // Создаем директорию для агента, если её нет
+    doFirst {
+        def agentFile = file("${buildDir}/libs/joke-mock-agent-${version}.jar")
+        if (!agentFile.exists()) {
+            println "Agent jar not found, building it first..."
+            tasks.agentJar.execute()
+        }
+    }
+
+    // Добавляем Java Agent для тестов
+    jvmArgs "-javaagent:${buildDir}/libs/joke-mock-agent-${version}.jar"
+
+    // Включаем отладку
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat = 'full'
+    }
+}
+
+// Убеждаемся, что agentJar выполняется перед тестами
+test.dependsOn agentJar
+
+// Убираем shadowJar, используем обычный agentJar
+// shadowJar отключаем, если не нужен
+tasks.named('shadowJar') {
+    enabled = false
+}
+
+// Для удобства: задача для сборки всего
+task buildAll {
+    dependsOn clean, jar, agentJar
+    description = 'Builds both library and agent JARs'
 }
