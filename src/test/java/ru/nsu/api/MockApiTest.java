@@ -8,7 +8,7 @@ import ru.nsu.extension.JokeMockExtension;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(JokeMockExtension.class)
-class JokeMockTest {
+class MockApiTest {
 
     interface GreetingService {
         String greet(String name);
@@ -37,6 +37,13 @@ class JokeMockTest {
         String result = greetingService.greet("Kate");
 
         assertEquals("Hello Kate", result);
+    }
+
+    @Test
+    void whenNothinThenNull() {
+        String result = greetingService.greet("Kate");
+
+        assertEquals(null, result);
     }
 }
 

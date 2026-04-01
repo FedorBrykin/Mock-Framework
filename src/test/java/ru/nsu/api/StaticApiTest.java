@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class StaticMockTest {
+public class StaticApiTest {
     @Test
     void givenStaticMethodWithNoArgs_whenMocked_thenReturnsMockSuccessfully() {
         assertThat(StaticUtils.name()).isEqualTo("Baeldung");
