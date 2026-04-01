@@ -5,8 +5,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class StaticUtils {
-
-    private StaticUtils() {}
+    // Вспомогательный интерфейс для примера, если его нет в StaticUtils
+    interface GreetingService {
+        String greet(String name);
+    }
 
     public static List<Integer> range(int start, int end) {
         return IntStream.range(start, end)
